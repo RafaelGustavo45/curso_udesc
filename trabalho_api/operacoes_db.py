@@ -59,3 +59,24 @@ def listar_marcas_com_historico(tipo):
     resultados = cursor.fetchall()
     conn.close()
     return resultados
+
+def listar_consultas():
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM fipe_cache ")
+    resultado = cursor.fetchone()
+    conn.close()
+    return resultado
+
+def listar_marca(marca):
+    #pode ser carro/caminhao/moto
+    conn = conectar()
+    cursor = conn.cursor()
+    # Join com o histórico para contar modelos já consultados
+    cursor.execute('''
+        SELECT preco, nome, codigo from fipe_cache where marca = ? 
+    ''', (marca))
+    resultados = cursor.fetchall()
+    conn.close()
+    return resultados
+    

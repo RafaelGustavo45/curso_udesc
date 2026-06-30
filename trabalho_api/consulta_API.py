@@ -19,3 +19,4 @@ def buscar_marcas(tipo):
         return response.json() if response.status_code == 200 else []
     except:
         return []
+    

@@ -1,10 +1,42 @@
 from num2words import num2words
-from rich.console import Console
-from rich.table import Table, console
-import consulta_API
+from rich.console import Console # Importar Console daqui
+from rich.table import Table     # Table vem daqui
 import operacoes_db
+import consulta_API
+console = Console() # Instanciamos o objeto console aqui
 
-console = Console()
+def consultar_preco_por_codigo_fipe(codigo):
+
+    dados_api = consulta_API.buscar_preco_fipe(codigo)
+    
+    if not dados_api:
+        console.print("[red]Erro: Código inválido ou API indisponível.[/red]")
+        return
+
+      # Processamento
+    preco_num = float(dados_api[0]['valor'].replace('R$ ', '').replace('.', '').replace(',', '.'))
+    preco_extenso = num2words(preco_num, lang='pt_BR', to='currency', currency='BRL')
+
+    # Salvar no DB
+    operacoes_db.salvar_consulta((
+            codigo, dados_api[0]['marca'], dados_api[0]['modelo'], 
+            dados_api[0]['anoModelo'], preco_num, preco_extenso
+          ))
+
+    # Exibir via Rich
+    table = Table(title="Resultado da Consulta")
+    table.add_column("Veículo", style="cyan")
+    table.add_column("Ano", style="magenta")
+    table.add_column("Preço (R$)", style="green")
+    table.add_column("Por Extenso", style="yellow")
+
+    table.add_row(
+               f"{dados_api[0]['marca']} {dados_api[0]['modelo']}",
+               str(dados_api[0]['anoModelo']),
+               f"{preco_num:,.2f}",
+               preco_extenso
+           )
+    console.print(table)
 
 def obter_dados_veiculo(codigo):
     # Tenta buscar no banco
@@ -69,5 +101,35 @@ def listar_marcas():
     
     for cod, nome, count in dados:
         table.add_row(str(cod), nome, str(count))
+        
+    console.print(table)
+
+def listar_historico():
+    dados = operacoes_db.listar_consultas()
+
+    table = Table(title=f"Dados")
+    table.add_column("Código", style="dim")
+    table.add_column("Nome", style="cyan")
+    table.add_column("Modelo", style="green")
+    table.add_column("Marca", style="yellow")
+    table.add_column("Ano", style="blue")
+    table.add_column("Preço", style="red")
+    
+    for cod, nome, count in dados:
+        table.add_row(str(cod), nome, str(count))
+        
+    console.print(table)
+
+def listar_marcas_detalhado(): # Renomeei para não conflitar com a anterior
+    dados = operacoes_db.listar_marca()
+    table = Table(title="Dados de Marcas")
+    
+    # Corrigido: add_column (um 'l' só)
+    table.add_column("Preço", style="orange")
+    table.add_column("Nome", style="red")
+    table.add_column("Código", style="yellow")
+
+    for cod, nome, preco in dados:
+        table.add_row(str(preco), nome, str(cod))
         
     console.print(table)
